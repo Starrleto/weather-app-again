@@ -11,6 +11,7 @@ import { HiOutlineSearch } from "react-icons/hi";
 import ForecastComponent from "@/components/ForecastComponent";
 import DailyComponent from "@/components/DailyComponent";
 
+
 export default function Home() {
 
   const [weather, setWeather] = useState<CurrentWeather>(Object);
