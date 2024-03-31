@@ -1,113 +1,127 @@
-import Image from "next/image";
+"use client";
+
+import "../components/style.css"
+import CityComponent from "@/components/CityComponent";
+import { useEffect, useState } from "react";
+import {getWeather, getForecast, initialWeather, getWeatherFromCity, getForecastFromCity} from "../Data Services/script";
+import React from 'react'
+import Link from "next/link";
+import { Navbar, FloatingLabel, Button } from "flowbite-react";
+import { HiOutlineSearch } from "react-icons/hi";
+import ForecastComponent from "@/components/ForecastComponent";
+import DailyComponent from "@/components/DailyComponent";
 
 export default function Home() {
+
+  const [weather, setWeather] = useState<CurrentWeather>(Object);
+  const [forecast, setForecast] = useState<CurrentForecast>(Object);
+  const [threeDay, setThreeDay] = useState<ForecastObject[]>([]);
+  const [weeklyIndex, setWeeklyIndex] = useState<number[]>([]);
+  const [search, setSearch] = useState<string>('');
+  const [loaded, setLoaded] = useState<boolean>(false);
+
+  // For the tab from daily forecast
+  const [visible, setVisible] = useState<string>("hidden");
+
+  // Search Function
+
+  const handleSearch = async () => {
+    const data = await getWeatherFromCity(search);
+    setWeather(data);
+    const data2 = await getForecastFromCity(search);
+    setForecast(data2);
+    getDailyForecast(data2);
+  }
+
+  // Ran on first application run
+
+  const getInitialData = async () => {
+    initialWeather();
+    if(loaded){
+      const data = await getWeather();
+      const data2 = await getForecast();
+      setWeather(data);
+      setForecast(data2);
+
+      getDailyForecast(data2);
+    }
+  }
+
+  // Gets the indexes of the start of each day in the forecast list.
+  // And also gets the first three items.
+
+  const getDailyForecast = (data:CurrentForecast) => {
+
+    const first = data?.list?.slice(0, 3);
+    setThreeDay(first);
+
+    let list = [0];
+    
+    for(let i = 1; i < data?.list?.length; i++){
+      if(data.list[i].dt_txt?.split(' ')[0].split('-')[2] !== data.list[i-1].dt_txt?.split(' ')[0].split('-')[2]){
+        list.push(i);
+      }
+    }
+    setWeeklyIndex(list);
+  }
+
+  const openDailyForecast = (day:number) => {
+    if(visible == "hidden"){
+      setVisible("");
+    }
+    else{
+      setVisible("hidden");
+    }
+  }
+
+  //Printer
+  const printShit = () => {
+    console.log(weeklyIndex);
+    console.log(threeDay);
+    console.log(forecast);
+    console.log(weather);
+  }
+
+  useEffect(() => {
+    getInitialData();
+    setLoaded(true);
+
+  }, [loaded]);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div>
+        <Navbar fluid >
+          <Navbar.Brand as={Link} href="/">
+            <span className="self-center whitespace-nowrap text-3xl font-semibold dark:text-white text-gray-500">climate.xchange</span>
+          </Navbar.Brand>
+          <Navbar.Toggle />
+          <Navbar.Collapse>
+            <FloatingLabel variant="outlined" label="Search for a City" onChange={(e) => {setSearch(e.target.value)}}/>
+            <Button className='' onClick={handleSearch}> <HiOutlineSearch className='h-6 w-6'/> </Button>
+          </Navbar.Collapse>
+        </Navbar>
+      <div className="justify-center flex">
+          <div className='lg:w-3/4'>
+            <CityComponent City={weather.name} MainTemp={Math.floor(weather?.main?.temp)} High={Math.floor(weather?.main?.temp_max)} Low={Math.floor(weather?.main?.temp_min)} WeatherType={weather.weather != undefined ? weather?.weather[0].description : ""}TimeTemps={threeDay}WeatherOne={threeDay[0]?.weather?.description} WeatherTwo={threeDay[0]?.weather?.description} WeatherThree={threeDay[0]?.weather?.description}></CityComponent>
+            <div className='grid lg:grid-cols-5 gap-8 mt-6'>
+              <a onClick={() => {openDailyForecast(0)}}><ForecastComponent></ForecastComponent></a>
+              <a onClick={() => {openDailyForecast(1)}}><ForecastComponent></ForecastComponent></a>
+              <a onClick={() => {openDailyForecast(2)}}><ForecastComponent></ForecastComponent></a>
+              <a onClick={() => {openDailyForecast(3)}}><ForecastComponent></ForecastComponent></a>
+              <a onClick={() => {openDailyForecast(4)}}><ForecastComponent></ForecastComponent></a>
+            </div>
+          </div>
+      </div>
+
+      <div className="items-center flex flex-col mt-6">
+        <div>
+        <Button size="lg" onClick={printShit} className="w-96" color="gray">Open your Favorite Places</Button>
+        </div>
+
+        <div className={visible}>
+          <DailyComponent></DailyComponent>
         </div>
       </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+    </div>
   );
 }
